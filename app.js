@@ -5,8 +5,7 @@ const json = require('koa-json')
 const onerror = require('koa-onerror')
 const bodyparser = require('koa-bodyparser')
 const logger = require('koa-logger')
-const log4js = require('log4js')
-const log = log4js.getLogger()
+const log4 = require('./utils/log4js')
 const index = require('./routes/index')
 const users = require('./routes/users')
 
@@ -32,8 +31,7 @@ app.use(
 // logger
 app.use(async (ctx, next) => {
   await next()
-  log.level = 'debug'
-  log.debug('Some debug messages')
+  log4.info('info som massage!')
 })
 
 // routes
@@ -42,7 +40,7 @@ app.use(users.routes(), users.allowedMethods())
 
 // error-handling
 app.on('error', (err, ctx) => {
-  console.error('server error', err, ctx)
+  log4.error(err)
 })
 
 module.exports = app
