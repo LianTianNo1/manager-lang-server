@@ -6,9 +6,9 @@ const onerror = require('koa-onerror')
 const bodyparser = require('koa-bodyparser')
 const logger = require('koa-logger')
 const log4 = require('./utils/log4js')
-const index = require('./routes/index')
 const users = require('./routes/users')
-
+const router = require('koa-router')()
+require('./config/db')
 // error handler
 onerror(app)
 
@@ -30,14 +30,16 @@ app.use(
 
 // logger
 app.use(async (ctx, next) => {
+  log4js.info(`get params:${JSON.stringify(ctx.request.query)}`)
+  log4js.info(`post params:${JSON.stringify(ctx.request.body)}`)
   await next()
-  log4.info('info som massage!')
 })
 
 // routes
-app.use(index.routes(), index.allowedMethods())
-app.use(users.routes(), users.allowedMethods())
-
+router.prefix('/api')
+router.use(users.routes(), users.allowedMethods())
+// 还得加载一次router.routes
+app.use(router.routes(), router.allowedMethods())
 // error-handling
 app.on('error', (err, ctx) => {
   log4.error(err)
