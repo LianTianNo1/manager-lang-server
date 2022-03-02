@@ -16,10 +16,13 @@ router.post('/login', async (ctx) => {
     const { userName, userPwd } = ctx.request.body
     log4js.info('ctx.request.body --- 》', ctx.request.body)
     log4js.info('userName, userPwd --- 》', userName, userPwd)
-    const res = await User.findOne({
-      userName,
-      userPwd,
-    })
+    const res = await User.findOne(
+      {
+        userName,
+        userPwd,
+      },
+      'userId userName userEmail state role deptId roleList'
+    )
     log4js.info('res  --- 》', res)
     // 用户真正的信息
     data = res._doc
@@ -31,7 +34,8 @@ router.post('/login', async (ctx) => {
       // 'lang'可以自己加
       'lang',
       // expiresIn 过期时间
-      { expiresIn: Math.floor(Date.now() / 1000) + 60 * 60 }
+      // { expiresIn: Math.floor(Date.now() / 1000) + 60 * 60 }
+      { expiresIn: '1h' }
     )
     // log4js.info('token  --- 》', token)
     if (res) {
