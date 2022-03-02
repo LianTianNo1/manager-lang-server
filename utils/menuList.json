@@ -1,0 +1,19 @@
+{
+  "code": 200,
+  "data": [
+    {
+      "parentId": [null],
+      "updateTime": "2021-03-06T10:03:38.947Z",
+      "createTime": "2021-01-30T09:22:00.000Z",
+      "_id": "600d4075e218daaf4ec77e52",
+      "menuType": "1",
+      "menuName": "系统管理",
+      "menuCode": "",
+      "path": "/system",
+      "icon": "el-icon-setting",
+      "order": "0",
+      "component": "",
+      "children": []
+    }
+  ]
+}

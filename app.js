@@ -8,6 +8,8 @@ const logger = require('koa-logger')
 const log4js = require('./utils/log4js')
 const users = require('./routes/users')
 const router = require('koa-router')()
+// 引入jwt
+const jwt = require('jsonwebtoken')
 require('./config/db')
 // error handler
 onerror(app)
@@ -37,12 +39,21 @@ app.use(async (ctx, next) => {
 
 // routes
 router.prefix('/api')
+router.get('/leave/count', (ctx) => {
+  log4js.info('===>', ctx.request.headers)
+  // 从请求头中获取到分割出 token
+  const token = ctx.request.headers.authorization.split(' ')[1]
+  // 进行解密验证，'lang'是之前的密钥
+  const payload = jwt.verify(token, 'lang')
+  ctx.body = payload
+})
 router.use(users.routes(), users.allowedMethods())
 // 还得加载一次router.routes
 app.use(router.routes(), router.allowedMethods())
+
 // error-handling
 app.on('error', (err, ctx) => {
-  log4.error(err)
+  log4js.error(err)
 })
 
 module.exports = app
