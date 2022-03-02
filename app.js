@@ -40,7 +40,6 @@ app.use(async (ctx, next) => {
 // routes
 router.prefix('/api')
 router.get('/leave/count', (ctx) => {
-  log4js.info('===>', ctx.request.headers)
   // 从请求头中获取到分割出 token
   const token = ctx.request.headers.authorization.split(' ')[1]
   // 进行解密验证，'lang'是之前的密钥

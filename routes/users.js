@@ -31,9 +31,9 @@ router.post('/login', async (ctx) => {
       // 'lang'可以自己加
       'lang',
       // expiresIn 过期时间
-      { expiresIn: (new Data() / 1000) * 60 }
+      { expiresIn: Math.floor(Date.now() / 1000) + 60 * 60 }
     )
-    log4js.info('token  --- 》', token)
+    // log4js.info('token  --- 》', token)
     if (res) {
       data.token = token
       ctx.body = util.success(data)
