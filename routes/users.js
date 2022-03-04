@@ -3,11 +3,15 @@
  */
 const router = require('koa-router')()
 const User = require('./../models/userSchema')
+const Counter = require('./../models/counterSchema')
 //  之前封装的util用来返回信息
 const util = require('./../utils/util')
 const log4js = require('./../utils/log4js')
 // 引入jwt
 const jwt = require('jsonwebtoken')
+// 引入md5
+const md5 = require('md5')
+
 router.prefix('/users')
 
 // 用户登录
@@ -85,10 +89,93 @@ router.post('/delete', async (ctx) => {
   // User.updateMany({ $or: [{ userId: 10001 }, { userId: 10002 }] })
   // updateMany第一个车参数是一个对象传入的查询条件 从数据库找出在待删除的userIds中的userId，第二个是修改状态把 他们修改成离职
   const res = await User.updateMany({ userId: { $in: userIds } }, { state: 2 })
+  console.log(res)
   if (res.modifiedCount) {
     ctx.body = util.success(res, `共删除成功${res.modifiedCount}条`)
     return
   }
   ctx.body = util.fail('删除失败')
+})
+
+// 用户新增/编辑
+router.post('/operate', async (ctx) => {
+  // 用户的字段
+  const {
+    userId,
+    userName,
+    userEmail,
+    mobile,
+    job,
+    state,
+    roleList,
+    deptId,
+    action,
+  } = ctx.request.body
+  // 如果是新增操作需要判断用户名和用户邮箱是否传入了进来
+  // 部门的传入 新增和更新都需要判断
+  if (action == 'add') {
+    if (!userName || !userEmail || !deptId) {
+      ctx.body = util.fail('参数错误', util.CODE.PARAM_ERROR)
+      return
+    }
+    // 查找是否数据库中有该数据 用户名或者邮箱相同 返回字段 _id userName userEmail
+    const res = await User.findOne(
+      { $or: [{ userName }, { userEmail }] },
+      '_id userName userEmail'
+    )
+    if (res) {
+      ctx.body = util.fail(
+        `系统监测到有重复的用户，信息如下：${res.userName} - ${res.userEmail}`
+      )
+    } else {
+      // 这是个是维护自增ID的一个集合，比每次去获取所有的条数+1性能好
+      const doc = await Counter.findOneAndUpdate(
+        { _id: 'userId' },
+        { $inc: { sequence_value: 1 } },
+        { new: true }
+      )
+      // console.log('doc--->', doc)
+      try {
+        // 创建用户，可以使用 create 也可以使用new
+        const user = new User({
+          // 自增id
+          userId: doc.sequence_value,
+          userName,
+          // 密码先默认 123456 然后加密
+          userPwd: md5('123456'),
+          userEmail,
+          role: 1, //默认普通用户
+          roleList,
+          job,
+          state,
+          deptId,
+          mobile,
+        })
+        // 别忘了save() 这是最重要的
+        user.save()
+        // 不用返回给前端用户的数据
+        ctx.body = util.success('', '用户创建成功')
+      } catch (error) {
+        ctx.body = util.fail(error.stack, '用户创建失败')
+      }
+    }
+  } else {
+    if (!deptId) {
+      ctx.body = util.fail('部门不能为空', util.CODE.PARAM_ERROR)
+      return
+    }
+    try {
+      // 更新操作 找到对应的id,第二个是用来对象的赋值 mobile:mobile ===》 mobile
+      const res = await User.findOneAndUpdate(
+        { userId },
+        { mobile, job, state, roleList, deptId }
+      )
+      // console.log('更新结果', res)
+      // 不能把用户的数据返回出去，这里返回空对象
+      ctx.body = util.success({}, '更新成功')
+    } catch (error) {
+      ctx.body = util.fail(error.stack, '更新失败')
+    }
+  }
 })
 module.exports = router
