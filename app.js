@@ -7,13 +7,14 @@ const bodyparser = require('koa-bodyparser')
 const logger = require('koa-logger')
 const log4js = require('./utils/log4js')
 const util = require('./utils/util')
-const users = require('./routes/users')
 const router = require('koa-router')()
 // 引入jwt
 const jwt = require('jsonwebtoken')
 // 引入koa-jwt中间件
 const koajwt = require('koa-jwt')
 require('./config/db')
+const users = require('./routes/users')
+const menus = require('./routes/menus')
 // error handler
 onerror(app)
 
@@ -63,6 +64,7 @@ router.get('/leave/count', (ctx) => {
   ctx.body = 'body'
 })
 router.use(users.routes(), users.allowedMethods())
+router.use(menus.routes(), menus.allowedMethods())
 // 还得加载一次router.routes
 app.use(router.routes(), router.allowedMethods())
 
