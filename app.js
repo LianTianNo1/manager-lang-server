@@ -15,6 +15,7 @@ const koajwt = require('koa-jwt')
 require('./config/db')
 const users = require('./routes/users')
 const menus = require('./routes/menus')
+const roles = require('./routes/roles')
 // error handler
 onerror(app)
 
@@ -65,6 +66,7 @@ router.get('/leave/count', (ctx) => {
 })
 router.use(users.routes(), users.allowedMethods())
 router.use(menus.routes(), menus.allowedMethods())
+router.use(roles.routes(), roles.allowedMethods())
 // 还得加载一次router.routes
 app.use(router.routes(), router.allowedMethods())
 
