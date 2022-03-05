@@ -47,7 +47,6 @@ router.post('/operate', async (ctx) => {
       // 上次使用过new创建，还需要save这次使用 create(参数) 方便
       res = await Menu.create(params)
       info = '创建成功'
-      console.log(res)
     } else if (action == 'edit') {
       // 更新下时间
       params.updateTime = new Date()
