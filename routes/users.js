@@ -3,7 +3,9 @@
  */
 const router = require('koa-router')()
 const User = require('./../models/userSchema')
+const Menu = require('./../models/menuSchema')
 const Counter = require('./../models/counterSchema')
+const Role = require('./../models/roleSchema')
 //  之前封装的util用来返回信息
 const util = require('./../utils/util')
 const log4js = require('./../utils/log4js')
@@ -18,14 +20,14 @@ router.prefix('/users')
 router.post('/login', async (ctx) => {
   try {
     const { userName, userPwd } = ctx.request.body
+    console.log(md5(userPwd))
     const res = await User.findOne(
       {
         userName,
-        userPwd,
+        userPwd: md5(userPwd),
       },
       'userId userName userEmail state role deptId roleList'
     )
-    log4js.info('res  --- 》', res)
     // 用户真正的信息
     data = res._doc
     // 使用用户的信息来生成token
@@ -186,4 +188,74 @@ router.post('/operate', async (ctx) => {
     }
   }
 })
+
+// 获取用户对应的权限菜单
+router.get('/getPermissionList', async (ctx) => {
+  // 获取到token
+  let authorization = ctx.request.headers.authorization
+  // 通过之前封装的解密的把token的信息解密出来
+  let { data } = util.decoded(authorization)
+  // 使用角色 和 角色列表 获取到该用户角色对应的菜单
+  let menuList = await getMenuList(data.role, data.roleList)
+  // 根据菜单列表获取行为列表（创建，删除按钮等等）
+  // 为了避免改变原来的对象使用JOSN来进行深拷贝
+  let actionList = getAction(JSON.parse(JSON.stringify(menuList)))
+  // 返回客户端 菜单列表 和 行为列表
+  ctx.body = util.success({ menuList, actionList })
+})
+
+// 获取角色对应的菜单列表
+async function getMenuList(userRole, roleKeys) {
+  let rootList = []
+  // 如果用户是0 也就是管理员 返回所有的权限
+  if (userRole == 0) {
+    rootList = (await Menu.find({})) || []
+  } else {
+    // 根据用户拥有的角色，获取权限列表
+    // 查查找用户对应的角色有哪些 得到用户拥有的所有的权限列表
+    let roleList = await Role.find({ _id: { $in: roleKeys } })
+    // 收集所有的权限，最后对他进行去重
+    let permissionList = []
+    // 遍历roleList 主要就是就是把所有的权限都拿出来
+    roleList.map((item) => {
+      //解构出半选中 ， 选中的 列表加入到 permissionList
+      let { checkedKeys, halfCheckedKeys } = item.permissionList
+      permissionList = permissionList.concat([
+        ...checkedKeys,
+        ...halfCheckedKeys,
+      ])
+    })
+    // 通过 set 对所有的权限列表进行去重
+    permissionList = [...new Set(permissionList)]
+    // 通过菜单_id(菜单的_id对应权限的值)判断是否存在上面查找出来的权限列表中 查找到所有的菜单
+    rootList = await Menu.find({ _id: { $in: permissionList } })
+  }
+  // 通过递归获取菜单后的树形
+  return util.getTreeMenu(rootList, null, [])
+}
+
+// 获取按钮行为 使用了我们之前的在 Role.vue 中getAction的方法魔改下
+function getAction(list) {
+  // 收集所有的按钮
+  let actionList = []
+  const deep = (arr) => {
+    while (arr.length) {
+      // 递归结束条件 直到栈为空
+      let item = arr.pop()
+      // 如果有action 说明他有按钮，把每个按钮 添加到 actionList
+      if (item.action) {
+        item.action.map((action) => {
+          actionList.push(action.menuCode)
+        })
+      }
+      // 如果有children 没有 action 就递归 children 把里面的 把每个按钮 添加到 actionList
+      if (item.children && !item.action) {
+        deep(item.children)
+      }
+    }
+  }
+  // 使用一次递归
+  deep(list)
+  return actionList
+}
 module.exports = router
