@@ -50,7 +50,15 @@ router.post('/login', async (ctx) => {
     ctx.body = util.fail(error.msg)
   }
 })
-
+// 获取全量用户列表
+router.get('/all/list', async (ctx) => {
+  try {
+    const list = await User.find({}, 'userId userName userEmail')
+    ctx.body = util.success(list)
+  } catch (error) {
+    ctx.body = util.fail(error.stack)
+  }
+})
 // 用户列表
 router.get('/list', async (ctx) => {
   // state是用户的状态 在职 ，离职 ，实习..
